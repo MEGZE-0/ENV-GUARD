@@ -7,20 +7,21 @@ This document tracks what is needed before ComposeEnvGuard is published. **Nothi
 - [ ] Repository description: *Read-only, local checker for Docker Compose environment configuration: undocumented variables, missing env files, and template problems, without printing secret values.*
 - [ ] Topics: `docker`, `docker-compose`, `compose`, `environment-variables`, `dotenv`, `env`, `configuration`, `linter`, `static-analysis`, `devops`, `github-action`, `python`, `fastapi`, `typer`, `security`
 - [ ] Branch protection on `main`: require the CI workflow to pass before merging.
-- [ ] Private vulnerability reporting enabled (referenced by SECURITY.md).
+- [ ] Private vulnerability reporting enabled (referenced by SECURITY.md). **Not checked; a maintainer must enable it.**
 - [ ] Issue templates reviewed (`.github/ISSUE_TEMPLATE/`), and the beginner issues in `docs/issue-drafts/` opened if wanted.
 
 ## Verification before tagging
 
-- [ ] CI workflow run green on GitHub for Python 3.11, 3.12 and 3.13 (**not yet run**).
-- [ ] Docker image built and the smoke test run on a machine with Docker (**not verified in the development sandbox**, which had no Docker).
-- [ ] Composite action run on GitHub against `examples/healthy-project` (**not yet run**).
+- [x] CI workflow run green on GitHub for Python 3.11, 3.12 and 3.13 (run 40311468211, commit 020479c).
+- [x] Docker image built and smoke-tested on a GitHub-hosted Docker daemon, including `docker compose up` and the API endpoints (same run, job "Docker image, CLI and Compose API smoke test"). Not run on a maintainer's own machine.
+- [x] Composite action run on GitHub against `examples/healthy-project` (same run, job "Composite action smoke test").
+- [ ] Maintainer re-runs the Docker smoke test on Docker Desktop or another local daemon (optional).
 - [ ] `python -m build` produces `compose_env_guard-<version>` sdist and wheel; the wheel installs into a clean venv and `composeguard version` works (**verified locally on 0.1.0**).
 - [ ] `ruff check .` and `ruff format --check .` pass; `pytest` passes with coverage ≥ 85% (**verified locally**).
 
 ## Version and release (0.1.0)
 
-1. Update the version in `src/compose_env_guard/__init__.py` and `CHANGELOG.md`.
+1. Version is already `0.1.0` in `src/compose_env_guard/__init__.py`. Move the `Unreleased` entries in `CHANGELOG.md` under `0.1.0`, and use `docs/release/v0.1.0.md` as the release description after review.
 2. Run the verification steps above.
 3. Tag the commit: `git tag -a v0.1.0 -m "ComposeEnvGuard 0.1.0"` and push the tag.
 4. Create a GitHub release from the tag with the CHANGELOG section as notes. Attach `dist/*` if desired.

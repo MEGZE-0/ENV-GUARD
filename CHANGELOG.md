@@ -24,3 +24,12 @@ Initial development version. Not yet published to PyPI or tagged.
 - Continuous integration workflow (`.github/workflows/ci.yml`) defined for Python 3.11–3.13, linting, package build, clean-install check, Docker build and composite-action smoke test. It has not yet run on GitHub.
 - Documentation: README, quickstart, rules, architecture, limitations, API, JSON report, GitHub Action, security policy, contributing guide, publishing checklist.
 - Examples: `examples/healthy-project` and `examples/broken-project`.
+
+### Fixed during pre-release verification
+
+- A symlinked template or Compose file that resolves outside the project is an error (CEG005 for the template, exit 2 for Compose), not a silent pass.
+- Unsupported YAML tags such as `!!python/...` on any field are reported (CEG005 warning). They were previously missed. They are never constructed or executed.
+- Outside-project `env_file` paths are no longer echoed in reports.
+- Absolute command-line paths that point inside the project are accepted.
+- The Compose API command passes `serve` to the image entrypoint; previously the container restarted in a loop.
+- The composite action and scripts refuse option-like inputs (values beginning with `-`).
