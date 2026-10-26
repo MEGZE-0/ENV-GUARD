@@ -2,7 +2,10 @@
 const nextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
-  // Preview/proxy friendly: allow the sandbox hostname to reach the dev server.
+  images: {
+    qualities: [70, 75, 82, 90],
+    formats: ["image/webp"],
+  },
   experimental: {
     optimizePackageImports: ["framer-motion", "lucide-react"],
   },

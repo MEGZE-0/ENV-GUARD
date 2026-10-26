@@ -161,7 +161,7 @@ tracking, and body copy stays at 15–16px for readability. Corners are machined
   and a `<noscript>` rule unhides every revealed section if JS is unavailable
 
 ### Performance notes
-- First Load JS ≈ 202 kB (gzip) including Framer Motion and Lenis
+- First load JS ≈ 202 kB, including Framer Motion and Lenis
 - hero canvas caps at 30 fps and 1.6 DPR; all loops are transform/opacity or canvas
 - fonts are self-hosted, `font-display: swap`, subset by Fontsource
 - images optimised through `next/image`; only the hero plate is priority

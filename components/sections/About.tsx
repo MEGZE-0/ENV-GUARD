@@ -40,7 +40,7 @@ export function About() {
             <Reveal>
               <div ref={ref} className="relative">
                 <div className="relative">
-                  <Brackets className="-inset-3 z-20" size={16} />
+                  <Brackets className="z-20" inset={-12} size={16} />
                   <div className="relative aspect-[4/5] w-full overflow-hidden bg-ink-850 notch">
                     <motion.div
                       className="absolute inset-[-6%]"

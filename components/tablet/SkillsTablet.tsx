@@ -91,41 +91,21 @@ export function SkillsTablet() {
       >
         {/* Device shell */}
         <div className="relative rounded-[26px] border border-bone/15 bg-[linear-gradient(170deg,#242a2c_0%,#141819_38%,#0b0e0f_100%)] p-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.09),inset_0_-2px_6px_rgba(0,0,0,0.8),0_60px_120px_-40px_rgba(0,0,0,1)] sm:p-3.5">
-          {/* corner bumpers */}
-          {[
-            "left-0 top-0 rounded-tl-[26px]",
-            "right-0 top-0 rounded-tr-[26px]",
-            "left-0 bottom-0 rounded-bl-[26px]",
-            "right-0 bottom-0 rounded-br-[26px]",
-          ].map((pos) => (
-            <span
-              key={pos}
-              aria-hidden
-              className={cn(
-                "pointer-events-none absolute h-9 w-9 border border-bone/10 bg-[#1c2224]",
-                pos,
-              )}
-            />
-          ))}
-
-          {/* screws */}
-          {[
-            "left-2 top-2",
-            "right-2 top-2",
-            "left-2 bottom-2",
-            "right-2 bottom-2",
-          ].map((pos) => (
-            <span
-              key={pos}
-              aria-hidden
-              className={cn(
-                "pointer-events-none absolute z-20 flex h-[7px] w-[7px] items-center justify-center rounded-full bg-[#0a0d0e] ring-1 ring-inset ring-white/10",
-                pos,
-              )}
-            >
-              <span className="h-[3px] w-[1px] rotate-45 bg-white/25" />
-            </span>
-          ))}
+          {/* screws — seated in the shell padding */}
+          {["left-0.5 top-0.5", "right-0.5 top-0.5", "left-0.5 bottom-0.5", "right-0.5 bottom-0.5"].map(
+            (pos) => (
+              <span
+                key={pos}
+                aria-hidden
+                className={cn(
+                  "pointer-events-none absolute z-20 flex h-[7px] w-[7px] items-center justify-center rounded-full bg-[#0a0d0e] ring-1 ring-inset ring-white/10",
+                  pos,
+                )}
+              >
+                <span className="h-[3px] w-[1px] rotate-45 bg-white/25" />
+              </span>
+            ),
+          )}
 
           {/* Screen */}
           <div className="relative overflow-hidden rounded-[15px] border border-black/70 bg-[#070a0b]">

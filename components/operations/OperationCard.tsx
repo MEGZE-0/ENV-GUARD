@@ -51,7 +51,9 @@ export function OperationCard({
         aria-label={`Open case file: ${operation.title}`}
         className={cn(
           "relative block w-full overflow-hidden border-b border-bone/10 text-left focus-visible:outline-offset-[-3px]",
-          featured ? "lg:col-span-7 lg:border-b-0 lg:border-r" : "aspect-[16/10]",
+          featured
+            ? "aspect-[16/10] lg:col-span-7 lg:aspect-auto lg:min-h-[430px] lg:border-b-0 lg:border-r"
+            : "aspect-[16/10]",
         )}
       >
         <div className={cn("relative h-full w-full", !featured && "absolute inset-0")}>

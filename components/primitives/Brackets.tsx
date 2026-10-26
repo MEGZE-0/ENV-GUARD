@@ -4,10 +4,13 @@ import { cn } from "@/lib/utils";
 export function Brackets({
   className,
   size = 14,
+  inset = 0,
   tone = "muted",
 }: {
   className?: string;
   size?: number;
+  /** Offset in px; negative values place the ticks outside the box. */
+  inset?: number;
   tone?: "muted" | "amber" | "bone";
 }) {
   const color =
@@ -15,12 +18,16 @@ export function Brackets({
       ? "border-amber/60"
       : tone === "bone"
         ? "border-bone/40"
-        : "border-bone/15";
+        : "border-bone/25";
 
   const style = { width: size, height: size } as const;
 
   return (
-    <div aria-hidden className={cn("pointer-events-none absolute inset-0", className)}>
+    <div
+      aria-hidden
+      className={cn("pointer-events-none absolute", className)}
+      style={{ inset }}
+    >
       <span className={cn("absolute left-0 top-0 border-l border-t", color)} style={style} />
       <span className={cn("absolute right-0 top-0 border-r border-t", color)} style={style} />
       <span className={cn("absolute bottom-0 left-0 border-b border-l", color)} style={style} />
