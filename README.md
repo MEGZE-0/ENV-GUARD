@@ -204,7 +204,7 @@ What has actually been run, and what has not. Read this before relying on an ins
 | `python -m pip install .` from a clone, then `composeguard scan`, `version`, `rules` | Verified in a clean virtual environment on Linux (development sandbox) and in CI on Ubuntu for Python 3.11–3.13 |
 | Scanning the examples: healthy passes (exit 0), broken fails (exit 1) | Verified (local Linux, CI) |
 | `composeguard serve` and the `/health`, `/api/v1/rules`, `/api/v1/scan`, `/docs` endpoints | Verified locally on Linux |
-| `docker build`, `docker run … scan` (Linux/macOS form), non-root user, healthy/broken exit codes | Verified in CI on a real Docker daemon (GitHub Actions, Ubuntu 24.04; run 40311468211) |
+| `docker build`, `docker run … scan` (Linux/macOS form), non-root user, healthy/broken exit codes | Verified in CI on a real Docker daemon (GitHub Actions, Ubuntu 24.04; see the pull request checks) |
 | `docker compose up --build -d`, `/health`, `/docs`, `/api/v1/scan`, port published on `127.0.0.1` only, `docker compose down` | Verified in CI on a real Docker daemon (GitHub Actions, Ubuntu 24.04). Not run on your own machine |
 | Windows PowerShell commands (`py -m venv`, activation, `docker run … ${PWD}`) | Written for PowerShell; **not executed** on Windows |
 | macOS commands | Standard Python and Docker commands, same as Linux; **not executed** on macOS |
@@ -297,7 +297,33 @@ Endpoints: `GET /health`, `GET /api/v1/rules`, `POST /api/v1/scan`, and the inte
 
 ## GitHub Actions
 
-ComposeEnvGuard ships a composite action (`action.yml`) that writes the Markdown report to the job summary and fails only when your chosen threshold is reached. Example workflow, input reference and runner requirements are in [docs/github-action.md](docs/github-action.md).
+ComposeEnvGuard ships a composite action (`action.yml`) that writes the Markdown report to the job summary and fails only when your chosen threshold is reached. It needs no secrets and no write permissions.
+
+Add this to a workflow in **your** repository. It works after the `v0.1.0` release is published; before that, use a commit SHA from this repository instead of `@v0.1.0`.
+
+```yaml
+name: Compose configuration check
+on: pull_request
+permissions:
+  contents: read
+jobs:
+  composeguard:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - uses: MEGZE-0/ENV-GUARD@v0.1.0
+        with:
+          path: .
+          fail-on: error
+          setup-python: "false"
+```
+
+Inputs, runner requirements and the security notes are in [docs/github-action.md](docs/github-action.md).
 
 ## How it differs from `.env` checkers
 

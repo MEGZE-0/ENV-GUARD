@@ -1,0 +1,8 @@
+# Source distribution contents. The wheel contains only the package (see pyproject.toml).
+include README.md LICENSE CHANGELOG.md CONTRIBUTING.md CODE_OF_CONDUCT.md SECURITY.md ROADMAP.md
+include action.yml Dockerfile compose.yaml .dockerignore
+recursive-include scripts *.sh
+recursive-include docs *.md *.json
+recursive-include examples *
+recursive-include tests *.py
+exclude .gitignore

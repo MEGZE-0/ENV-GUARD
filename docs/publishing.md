@@ -12,9 +12,9 @@ This document tracks what is needed before ComposeEnvGuard is published. **Nothi
 
 ## Verification before tagging
 
-- [x] CI workflow run green on GitHub for Python 3.11, 3.12 and 3.13 (run 40311468211, commit 020479c).
-- [x] Docker image built and smoke-tested on a GitHub-hosted Docker daemon, including `docker compose up` and the API endpoints (same run, job "Docker image, CLI and Compose API smoke test"). Not run on a maintainer's own machine.
-- [x] Composite action run on GitHub against `examples/healthy-project` (same run, job "Composite action smoke test").
+- [ ] CI workflow green on GitHub for Python 3.11, 3.12 and 3.13 on the release commit (check the pull request checks).
+- [ ] Docker image smoke test green on GitHub (job "Docker image, CLI and Compose API smoke test") on the release commit. Passed on earlier commits of this branch; check it again on the release commit. Not run on a maintainer's own machine.
+- [ ] Composite action smoke test green on GitHub on the release commit.
 - [ ] Maintainer re-runs the Docker smoke test on Docker Desktop or another local daemon (optional).
 - [ ] `python -m build` produces `compose_env_guard-<version>` sdist and wheel; the wheel installs into a clean venv and `composeguard version` works (**verified locally on 0.1.0**).
 - [ ] `ruff check .` and `ruff format --check .` pass; `pytest` passes with coverage ≥ 85% (**verified locally**).
@@ -26,16 +26,16 @@ This document tracks what is needed before ComposeEnvGuard is published. **Nothi
 3. Tag the commit: `git tag -a v0.1.0 -m "ComposeEnvGuard 0.1.0"` and push the tag.
 4. Create a GitHub release from the tag with the CHANGELOG section as notes. Attach `dist/*` if desired.
 
-## Publishing the GitHub Action (`v1`)
+## Publishing the GitHub Action (`v0.1.0`)
 
-The action is referenced as `MEGZE-0/ENV-GUARD@v1` only after this procedure:
+The action is the repository's root `action.yml`. It is published by the same `v0.1.0` tag as the package, so users reference `MEGZE-0/ENV-GUARD@v0.1.0`.
 
-1. Make sure `action.yml` and `scripts/ci-scan.sh` are in the release commit.
-2. Run the composite-action smoke test in CI on that commit.
-3. Create the tag `v1.0.0` for the release, and move a `v1` tag to the same commit: `git tag -f v1 v1.0.0`, then `git push --force origin v1`. Moving a major tag is a deliberate, documented action; do it only for a fix that stays compatible.
-4. Publish the release on GitHub, and only then update the documentation examples from `@main` to `@v1`.
+1. Confirm the release commit contains `action.yml` and `scripts/ci-scan.sh`, and that the `Composite action smoke test` job is green on that commit.
+2. Create the annotated tag on that commit: `git tag -a v0.1.0 -m "ComposeEnvGuard 0.1.0"` and push it: `git push origin v0.1.0`.
+3. Publish the GitHub release from that tag.
+4. Only after step 3, the examples in `README.md` and `docs/github-action.md` resolve as written.
 
-Do not reference `@v1` in documentation before step 3 has been performed.
+Do not move `v0.1.0` after publication. If a fix is needed, release `0.1.1` and reference that tag. A floating `v1` or `v0` tag is intentionally not part of this release.
 
 ## PyPI (not yet published)
 

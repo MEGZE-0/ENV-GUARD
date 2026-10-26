@@ -37,8 +37,8 @@ jobs:
           python-version: "3.12"
 
       - name: Run ComposeEnvGuard
-        # Replace @main with @v1 once the v1 tag has been published (see docs/publishing.md).
-        uses: MEGZE-0/ENV-GUARD@main
+        # Available after the v0.1.0 tag is published. Before that, use a full commit SHA.
+        uses: MEGZE-0/ENV-GUARD@v0.1.0
         with:
           path: .
           fail-on: error
@@ -65,7 +65,7 @@ Notes:
 Example with several Compose files:
 
 ```yaml
-      - uses: MEGZE-0/ENV-GUARD@main
+      - uses: MEGZE-0/ENV-GUARD@v0.1.0
         with:
           path: services/api
           env-example: .env.sample
@@ -90,9 +90,13 @@ Example with several Compose files:
 - Network access to PyPI when the action installs its dependencies (typer, rich, pydantic, PyYAML, python-dotenv).
 - Verified in this repository: the workflow in `.github/workflows/ci.yml` runs the action against the healthy example on `ubuntu-latest`. Windows and macOS runners have not been verified.
 
-## Using the action before a tag exists
+## Which version to reference
 
-The action is usable from any commit of this repository: `MEGZE-0/ENV-GUARD@<commit-sha>` or `@main`. The `v1` tag becomes available only after it is published; see [publishing.md](publishing.md). Until then, do not reference `@v1`.
+- **After the `v0.1.0` release:** `MEGZE-0/ENV-GUARD@v0.1.0`. This is the recommended form. The tag is created on the release commit and is not moved.
+- **Before the release:** `@v0.1.0` does not resolve yet. Use a full commit SHA from this repository, for example `MEGZE-0/ENV-GUARD@<40-character-sha>`.
+- **Do not use `@main`** in your workflows. It changes with every commit.
+
+A `v1` tag is not part of this release. Major-version tags can be added later with the procedure in [publishing.md](publishing.md).
 
 ## Local dry run of the script
 

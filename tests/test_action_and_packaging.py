@@ -243,3 +243,26 @@ def test_example_projects_are_present():
     for name in ("healthy-project", "broken-project"):
         assert (EXAMPLES / name / "compose.yaml").is_file()
         assert (EXAMPLES / name / ".env.example").is_file() or (EXAMPLES / name / ".env.sample").is_file()
+
+
+def test_readme_action_example_pins_the_release_tag_not_main():
+    # Regression guard for release docs: users must be told to pin the tag, never a moving branch.
+    import re
+
+    readme = (REPO_ROOT / "README.md").read_text()
+    block = re.search(r"```yaml\nname: Compose configuration check(.*?)```", readme, re.S)
+    assert block, "README must contain the copy-paste workflow"
+    steps = yaml.safe_load(block.group(0)[len("```yaml\n") : -3])["jobs"]["composeguard"]["steps"]
+    uses = [s["uses"] for s in steps if "uses" in s]
+    assert f"MEGZE-0/ENV-GUARD@v{__version__}" in uses
+    assert "@main" not in readme
+    assert "@main" not in (REPO_ROOT / "docs" / "github-action.md").read_text().split("Do not use")[0]
+
+
+def test_release_description_exists_for_the_current_version():
+    release = REPO_ROOT / "docs" / "release" / f"v{__version__}.md"
+    assert release.exists()
+    text = release.read_text()
+    for section in ("Supported platforms", "Not verified", "Known limitations"):
+        assert section in text
+    assert "not tested" in text.lower()  # Windows and macOS must be stated as untested

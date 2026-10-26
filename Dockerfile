@@ -7,6 +7,12 @@
 # at runtime for scanning. It runs as an unprivileged user.
 FROM python:3.12-slim
 
+LABEL org.opencontainers.image.title="ComposeEnvGuard" \
+      org.opencontainers.image.description="Read-only checker for Docker Compose environment configuration" \
+      org.opencontainers.image.version="0.1.0" \
+      org.opencontainers.image.licenses="MIT" \
+      org.opencontainers.image.source="https://github.com/MEGZE-0/ENV-GUARD"
+
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1 \
