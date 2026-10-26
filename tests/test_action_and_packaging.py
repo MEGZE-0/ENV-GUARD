@@ -199,7 +199,22 @@ def test_dockerfile_and_compose_are_safe_by_default():
     assert all("docker.sock" not in v for v in api.get("volumes", []))
     assert "privileged" not in api
     assert api.get("read_only") is True
-    assert "compose_env_guard.api:app" in " ".join(api["command"])
+    # Regression: the image ENTRYPOINT is `composeguard`, so the command must be a subcommand.
+    # A `python -m uvicorn ...` command made the container exit with "No such command 'python'".
+    assert api["command"][0] == "serve"
+    assert "python" not in api["command"]
+
+
+def test_compose_api_command_is_accepted_by_the_cli():
+    from typer.testing import CliRunner
+
+    from compose_env_guard.cli import app
+
+    compose = yaml.safe_load((REPO_ROOT / "compose.yaml").read_text())
+    command = compose["services"]["api"]["command"]
+    result = CliRunner().invoke(app, [*command, "--help"])
+    assert result.exit_code == 0, result.output
+    assert "--host" in result.output and "--port" in result.output
 
 
 def test_example_compose_files_do_not_publish_ports_on_all_interfaces():

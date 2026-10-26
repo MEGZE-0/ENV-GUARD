@@ -13,7 +13,9 @@ services:
   api:
     build: .
     image: compose-env-guard:local
-    command: ["python", "-m", "uvicorn", "compose_env_guard.api:app", "--host", "0.0.0.0", "--port", "8000"]
+    # The image ENTRYPOINT is `composeguard`, so the command is a composeguard subcommand.
+    # `serve` binds to the address given here; the host port is still limited to 127.0.0.1 below.
+    command: ["serve", "--host", "0.0.0.0", "--port", "8000"]
     ports:
       - "127.0.0.1:8000:8000"
     read_only: true
