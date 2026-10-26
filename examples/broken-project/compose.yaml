@@ -1,0 +1,21 @@
+# Broken example with deliberate problems for ComposeEnvGuard to find:
+#   - JWT_SECRET is referenced but not documented in .env.example       (CEG001)
+#   - ./config/missing.env is required but does not exist               (CEG003)
+#   - LOG_LEVEL is declared twice in .env.sample                          (CEG002)
+#   - LEGACY_API_URL is documented but never used                        (CEG004)
+services:
+  api:
+    image: example/api:${IMAGE_TAG:-latest}
+    env_file:
+      - ./config/missing.env
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+      JWT_SECRET: ${JWT_SECRET}
+    ports:
+      - "127.0.0.1:8080:8080"
+
+  web:
+    image: example/web:${IMAGE_TAG:-latest}
+    environment:
+      - API_URL=http://api:8080
+      - LOG_LEVEL=${LOG_LEVEL:-info}

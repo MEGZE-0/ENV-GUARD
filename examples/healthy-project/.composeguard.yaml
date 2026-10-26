@@ -1,0 +1,10 @@
+# Optional explicit contract: these variables must be declared for each service.
+version: 1
+services:
+  api:
+    required_env:
+      - DATABASE_URL
+      - JWT_SECRET
+  worker:
+    required_env:
+      - DATABASE_URL

@@ -1,0 +1,26 @@
+# Healthy example: every referenced variable is documented in .env.example,
+# and the only env_file is optional, so nothing blocks a deployment.
+x-common-env: &common-env
+  LOG_LEVEL: ${LOG_LEVEL:-info}
+
+services:
+  api:
+    image: ${REGISTRY:-ghcr.io/example}/api:${IMAGE_TAG:-latest}
+    env_file:
+      - path: ./config/api.local.env
+        required: false
+    environment:
+      <<: *common-env
+      DATABASE_URL: ${DATABASE_URL}
+      JWT_SECRET: ${JWT_SECRET}
+    ports:
+      - "127.0.0.1:8080:8080"
+    depends_on:
+      - worker
+
+  worker:
+    image: ${REGISTRY:-ghcr.io/example}/worker:${IMAGE_TAG:-latest}
+    environment:
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      - DATABASE_URL=${DATABASE_URL}
+      - QUEUE_NAME=jobs

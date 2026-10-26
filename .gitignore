@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.pytest_cache/
+.ruff_cache/
+.coverage
+coverage.xml
+htmlcov/
+.venv/
+.venv*/
+venv/
+
+# Local environment files with real values must never be committed
+.env
+.env.*
+!.env.example
+!.env.sample
+*.local.env
+
+# Editor and OS files
+.idea/
+.vscode/
+.DS_Store
