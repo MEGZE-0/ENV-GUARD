@@ -14,7 +14,7 @@ concurrency:
 jobs:
   test:
     name: Lint, test and CLI smoke (Python ${{ matrix.python-version }})
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
@@ -56,7 +56,7 @@ jobs:
 
   package:
     name: Build and verify distribution artifacts
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: test
     steps:
       - uses: actions/checkout@v7
@@ -82,7 +82,7 @@ jobs:
 
   docker:
     name: Docker image, CLI and Compose API smoke test
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
         with:
@@ -100,16 +100,21 @@ jobs:
       - name: Docker tests (run here because this job has a Docker daemon)
         run: pytest tests/test_docker.py -v -rs
 
-      - name: End-to-end Docker smoke test (image, CLI exit codes, Compose API, port binding)
-        run: bash scripts/docker-smoke.sh
+      - name: Docker smoke test, part 1 (image build, non-root user, CLI exit codes)
+        run: bash scripts/docker-smoke.sh cli
 
-      - name: Show Compose logs on failure
+      - name: Docker smoke test, part 2 (Compose stack, /health, /docs, /api/v1/scan, port binding)
+        run: bash scripts/docker-smoke.sh api
+
+      - name: Show Compose state on failure
         if: failure()
-        run: docker compose logs --no-color || true
+        run: |
+          docker compose ps -a || true
+          docker compose logs --no-color || true
 
   composite-action:
     name: Composite action smoke test
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
         with:
