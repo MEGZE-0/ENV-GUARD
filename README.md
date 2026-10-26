@@ -115,6 +115,21 @@ The healthy example, `composeguard scan examples/healthy-project`, reports `Fina
 
 ## Installation
 
+### Python dependencies
+
+ComposeEnvGuard needs **Python 3.11 or newer**. Check with `python --version` (Windows: `py --version`).
+
+Installing the package installs its dependencies automatically:
+
+| Package | Why |
+| --- | --- |
+| typer, rich | the command line and coloured terminal output |
+| pydantic | the report data models |
+| PyYAML | reads Compose files safely |
+| python-dotenv | parses environment templates (names only) |
+
+The optional HTTP API adds `fastapi` and `uvicorn`, installed with the `api` extra (`".[api]"`). You do not need it to scan files.
+
 ### Option A: Python (local checkout)
 
 Requires Python 3.11 or newer.
@@ -129,11 +144,22 @@ composeguard version
 To keep it isolated in a virtual environment:
 
 ```bash
-python -m venv .venv
-. .venv/bin/activate              # Windows PowerShell: .venv\Scripts\Activate.ps1
+# Linux / macOS
+python3 -m venv .venv
+. .venv/bin/activate
 python -m pip install .
 composeguard scan examples/healthy-project
 ```
+
+```powershell
+# Windows PowerShell
+py -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install .
+composeguard scan examples\healthy-project
+```
+
+If PowerShell blocks the activation script, run `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned` once, or skip activation and call `.\.venv\Scripts\composeguard.exe` directly.
 
 For the optional HTTP API, install the `api` extra: `python -m pip install ".[api]"`.
 
@@ -163,11 +189,25 @@ docker run --rm -v "${PWD}:/workspace:ro" compose-env-guard scan /workspace
 
 ```bash
 docker compose up --build -d
-# then open http://localhost:8000/docs
+# then visit http://localhost:8000/docs in your browser
 docker compose down
 ```
 
-The port is published on `127.0.0.1` only. See [docs/api.md](docs/api.md) before exposing it anywhere.
+The port is published on `127.0.0.1` only, so it is reachable from your own machine and not from your network. See [docs/api.md](docs/api.md) before exposing it anywhere.
+
+## Verification status
+
+What has actually been run, and what has not. Read this before relying on an instruction.
+
+| Instruction | Status |
+| --- | --- |
+| `python -m pip install .` from a clone, then `composeguard scan`, `version`, `rules` | Verified in a clean virtual environment on Linux (development sandbox) and in CI on Ubuntu for Python 3.11–3.13 |
+| Scanning the examples: healthy passes (exit 0), broken fails (exit 1) | Verified (local Linux, CI) |
+| `composeguard serve` and the `/health`, `/api/v1/rules`, `/api/v1/scan`, `/docs` endpoints | Verified locally on Linux |
+| `docker build`, `docker run … scan`, `docker compose up/down`, API inside the container | See the CI "Docker" job for its result; not executed by the development sandbox, which has no Docker |
+| Windows PowerShell commands | Written for PowerShell; **not executed** on Windows yet |
+| macOS commands | Standard Python and Docker commands; **not executed** on macOS yet |
+| Install from PyPI | **Not available**: the package is not published |
 
 ## First scan: step by step
 

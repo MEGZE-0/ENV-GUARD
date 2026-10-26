@@ -628,3 +628,44 @@ def test_absolute_include_path_outside_project_is_rejected(make_project, tmp_pat
     outside.write_text("A=1\n")
     with pytest.raises(ScanInputError):
         scan(project, include_env_files=[str(outside)])
+
+
+def test_template_symlink_outside_project_is_an_error_not_a_silent_pass(make_project, tmp_path):
+    # Regression: a refused template used to be treated as "no template" and the scan passed.
+    from conftest import can_symlink
+
+    if not can_symlink():
+        pytest.skip("symlinks are not available on this platform")
+    project = make_project({"compose.yaml": "services:\n  api:\n    image: x\n"})
+    outside = tmp_path / "outside.env"
+    outside.write_text("A=1\n")
+    (project / ".env.example").symlink_to(outside)
+    report = scan(project)
+    assert report.status == "failed"
+    findings = findings_for(report, "CEG005")
+    assert len(findings) == 1
+    assert findings[0].severity == Severity.ERROR
+    assert findings[0].file == ".env.example"
+    assert str(outside) not in report.model_dump_json()
+
+
+def test_compose_symlink_outside_project_is_refused_with_clear_error(make_project, tmp_path):
+    from conftest import can_symlink
+
+    if not can_symlink():
+        pytest.skip("symlinks are not available on this platform")
+    project = make_project({".env.example": "A=1\n"})
+    outside = tmp_path / "outside.yaml"
+    outside.write_text("services:\n  api:\n    image: x\n")
+    (project / "compose.yaml").symlink_to(outside)
+    with pytest.raises(ScanInputError, match=r"compose\.yaml resolves outside the project directory"):
+        scan(project)
+
+
+def test_outside_env_file_path_is_not_echoed_in_report(make_project):
+    # Regression: the raw path of an env_file outside the project was copied into report.files.
+    project = make_project({"compose.yaml": "services:\n  api:\n    env_file: ../../secret/location.env\n"})
+    report = scan(project)
+    dumped = report.model_dump_json()
+    assert "secret/location.env" not in dumped
+    assert any(f.status == "skipped" and "declared in compose.yaml" in f.path for f in report.files)

@@ -317,6 +317,20 @@ def scan_project(project_dir: str | Path, options: ScanOptions | None = None) ->
             raise ScanInputError(f"Environment template not found: {template_rel}")
     else:
         template_rel = _first_existing(boundary, TEMPLATE_NAMES)
+    for name in TEMPLATE_NAMES:
+        if name == template_rel:
+            break
+        if _refused_outside(boundary, name):
+            findings.append(
+                make_finding(
+                    "CEG005",
+                    f"The environment template {name} resolves outside the project directory "
+                    "and was not read.",
+                    "Keep the template inside the project, or pass --env-example with a file inside it.",
+                    severity=Severity.ERROR,
+                    file=name,
+                )
+            )
     if template_rel is None:
         notes.append(
             "No environment template was found (looked for .env.example and .env.sample). "
@@ -382,6 +396,14 @@ def _exists(boundary: ProjectRoot, rel: str) -> bool:
         return False
 
 
+def _refused_outside(boundary: ProjectRoot, name: str) -> bool:
+    """True when ``name`` exists in the project but resolves outside the boundary (e.g. a symlink)."""
+    if not os.path.lexists(os.path.join(boundary.real_root, name)):
+        return False
+    rel, _real = boundary.resolve(name)
+    return rel is None
+
+
 def _first_existing(boundary: ProjectRoot, names: tuple[str, ...]) -> str | None:
     for name in names:
         if _exists(boundary, name):
@@ -423,7 +445,20 @@ def _select_compose_files(
                 rels.append(rel)
         return rels
     found = _first_existing(boundary, COMPOSE_NAMES)
+    for name in COMPOSE_NAMES:
+        if name == found:
+            break
+        if _refused_outside(boundary, name):
+            skipped.append(
+                SkippedItem(path=name, reason="resolves outside the project directory and was not read")
+            )
     if found is None:
+        refused = [name for name in COMPOSE_NAMES if _refused_outside(boundary, name)]
+        if refused:
+            raise ScanInputError(
+                f"{refused[0]} resolves outside the project directory and was not read. "
+                "Keep the Compose file inside the project, or pass --compose with a file inside it."
+            )
         raise ScanInputError(
             "No Compose file found. Looked for "
             + ", ".join(COMPOSE_NAMES)
@@ -605,7 +640,9 @@ def _resolve_env_files(
         state = ctx.env_files[rel]
         if state.status in UNVERIFIED_STATUSES:
             if state.status == "outside":
-                files.append(AnalyzedFile(path=state.path, role="env_file", status="skipped"))
+                # Never echo the outside-the-project path; name only the file that declared it.
+                label = f"<outside the project, declared in {state.declared_in}>"
+                files.append(AnalyzedFile(path=label, role="env_file", status="skipped"))
             continue
         exists = _exists(boundary, rel)
         if not exists:

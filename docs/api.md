@@ -8,7 +8,7 @@ With Docker Compose (publishes port 8000 on `127.0.0.1` only):
 
 ```bash
 docker compose up --build -d
-open http://localhost:8000/docs      # or visit it in your browser
+# then visit http://localhost:8000/docs in your browser
 docker compose down
 ```
 
