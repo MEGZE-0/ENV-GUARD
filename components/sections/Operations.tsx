@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { operations, type Operation, type OperationCategory } from "@/data/site";
 import { SectionHeader } from "@/components/primitives/SectionHeader";
@@ -34,6 +34,8 @@ export function Operations() {
     () => (filter === "All" ? operations : operations.filter((o) => o.category === filter)),
     [filter],
   );
+
+  const closeModal = useCallback(() => setActive(null), []);
 
   const featured = filter === "All" ? filtered[0] : null;
   const rest = featured ? filtered.slice(1) : filtered;
@@ -146,7 +148,7 @@ export function Operations() {
         </Reveal>
       </div>
 
-      <OperationModal operation={active} onClose={() => setActive(null)} />
+      <OperationModal operation={active} onClose={closeModal} />
     </section>
   );
 }
