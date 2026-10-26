@@ -1,0 +1,315 @@
+{
+  "$defs": {
+    "AnalyzedFile": {
+      "additionalProperties": false,
+      "description": "A file the scanner considered, with how it was used.",
+      "properties": {
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "role": {
+          "enum": [
+            "compose",
+            "template",
+            "env_file",
+            "included_env_file",
+            "config",
+            "project_env"
+          ],
+          "title": "Role",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "analyzed",
+            "keys_read",
+            "not_read",
+            "missing",
+            "skipped"
+          ],
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "role",
+        "status"
+      ],
+      "title": "AnalyzedFile",
+      "type": "object"
+    },
+    "FailOn": {
+      "description": "Threshold at which a scan is reported as failed.",
+      "enum": [
+        "error",
+        "warning",
+        "info",
+        "never"
+      ],
+      "title": "FailOn",
+      "type": "string"
+    },
+    "Finding": {
+      "additionalProperties": false,
+      "description": "A single diagnostic. Never contains environment values.",
+      "properties": {
+        "rule_id": {
+          "title": "Rule Id",
+          "type": "string"
+        },
+        "severity": {
+          "$ref": "#/$defs/Severity"
+        },
+        "title": {
+          "title": "Title",
+          "type": "string"
+        },
+        "message": {
+          "title": "Message",
+          "type": "string"
+        },
+        "suggestion": {
+          "title": "Suggestion",
+          "type": "string"
+        },
+        "variable": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Variable"
+        },
+        "service": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Service"
+        },
+        "file": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "File"
+        },
+        "line": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Line"
+        },
+        "subject": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Subject"
+        },
+        "uncertainty": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Uncertainty"
+        }
+      },
+      "required": [
+        "rule_id",
+        "severity",
+        "title",
+        "message",
+        "suggestion"
+      ],
+      "title": "Finding",
+      "type": "object"
+    },
+    "FindingCounts": {
+      "additionalProperties": false,
+      "properties": {
+        "error": {
+          "default": 0,
+          "title": "Error",
+          "type": "integer"
+        },
+        "warning": {
+          "default": 0,
+          "title": "Warning",
+          "type": "integer"
+        },
+        "info": {
+          "default": 0,
+          "title": "Info",
+          "type": "integer"
+        }
+      },
+      "title": "FindingCounts",
+      "type": "object"
+    },
+    "Severity": {
+      "description": "Finding severity. ``error`` > ``warning`` > ``info``.",
+      "enum": [
+        "error",
+        "warning",
+        "info"
+      ],
+      "title": "Severity",
+      "type": "string"
+    },
+    "SkippedItem": {
+      "additionalProperties": false,
+      "description": "Something that was not analyzed, or an unsupported construct that was ignored.",
+      "properties": {
+        "path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Path"
+        },
+        "reason": {
+          "title": "Reason",
+          "type": "string"
+        }
+      },
+      "required": [
+        "reason"
+      ],
+      "title": "SkippedItem",
+      "type": "object"
+    },
+    "ToolInfo": {
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "const": "compose-env-guard",
+          "default": "compose-env-guard",
+          "title": "Name",
+          "type": "string"
+        },
+        "version": {
+          "title": "Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "version"
+      ],
+      "title": "ToolInfo",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Versioned, machine-readable scan report (shared by CLI JSON and HTTP API).",
+  "properties": {
+    "schema_version": {
+      "const": "1.0",
+      "default": "1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "tool": {
+      "$ref": "#/$defs/ToolInfo"
+    },
+    "project": {
+      "title": "Project",
+      "type": "string"
+    },
+    "status": {
+      "enum": [
+        "passed",
+        "failed"
+      ],
+      "title": "Status",
+      "type": "string"
+    },
+    "fail_on": {
+      "$ref": "#/$defs/FailOn"
+    },
+    "counts": {
+      "$ref": "#/$defs/FindingCounts"
+    },
+    "files": {
+      "items": {
+        "$ref": "#/$defs/AnalyzedFile"
+      },
+      "title": "Files",
+      "type": "array"
+    },
+    "services": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Services",
+      "type": "array"
+    },
+    "findings": {
+      "items": {
+        "$ref": "#/$defs/Finding"
+      },
+      "title": "Findings",
+      "type": "array"
+    },
+    "skipped": {
+      "items": {
+        "$ref": "#/$defs/SkippedItem"
+      },
+      "title": "Skipped",
+      "type": "array"
+    },
+    "notes": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Notes",
+      "type": "array"
+    }
+  },
+  "required": [
+    "tool",
+    "project",
+    "status",
+    "fail_on",
+    "counts"
+  ],
+  "title": "Report",
+  "type": "object"
+}

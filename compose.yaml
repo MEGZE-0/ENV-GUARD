@@ -1,0 +1,35 @@
+# Local HTTP API for ComposeEnvGuard.
+#
+#   docker compose up --build -d
+#   open http://localhost:8000/docs
+#   docker compose down
+#
+# Security notes:
+# - The port is published on 127.0.0.1 only. Other machines cannot reach it.
+# - The API has no authentication. Do not publish it on a public interface, reverse proxy
+#   or tunnel without adding authentication, TLS and rate limiting first.
+# - No Docker socket, no privileged mode, no host paths and no database are used.
+services:
+  api:
+    build: .
+    image: compose-env-guard:local
+    command: ["python", "-m", "uvicorn", "compose_env_guard.api:app", "--host", "0.0.0.0", "--port", "8000"]
+    ports:
+      - "127.0.0.1:8000:8000"
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=3).status == 200 else 1)"
+      interval: 30s
+      timeout: 5s
+      retries: 3
