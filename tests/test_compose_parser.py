@@ -263,3 +263,28 @@ def test_unicode_content_is_preserved():
     )
     assert "café" in facts.services
     assert [r.ref.name for r in facts.references] == ["GREETING"]
+
+
+def test_python_object_tag_on_image_is_reported_once_and_not_constructed():
+    # Regression: '!!python/...' expands to tag:yaml.org,2002:python/... and was not detected,
+    # and tags on fields such as 'image' were never visited. The tag must be reported once,
+    # with its line, and must never be constructed into a Python object.
+    text = (
+        "services:\n"
+        "  api:\n"
+        "    image: !!python/object/apply:os.system ['echo CANARY_TAG_RUN']\n"
+        "    environment:\n"
+        "      K: v\n"
+    )
+    facts = parse_compose(text, "compose.yaml")
+    tag_findings = [f for f in facts.findings if f.rule_id == "CEG005" and "tag" in f.message]
+    assert len(tag_findings) == 1
+    assert tag_findings[0].severity == Severity.WARNING
+    assert tag_findings[0].line == 3
+    assert "CANARY_TAG_RUN" not in " ".join(f.message for f in facts.findings)
+
+
+def test_core_implicit_tags_such_as_dates_are_not_reported():
+    text = "services:\n  api:\n    image: x\n    labels:\n      released: 2024-01-01\n      count: 3\n"
+    facts = parse_compose(text, "compose.yaml")
+    assert [f for f in facts.findings if "tag" in f.message] == []

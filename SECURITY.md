@@ -61,6 +61,35 @@ ComposeEnvGuard is a **local, read-only analysis tool**. It is designed for the 
 - **Malicious local code** running as the same user can read anything the user can read; ComposeEnvGuard is not a sandbox.
 - **Dependencies** (FastAPI, Pydantic, PyYAML, python-dotenv, Typer, Rich, uvicorn) may have vulnerabilities. Keep them updated; the project does not pin transitive versions in the library, so use a lock file in your environment if you need reproducibility.
 
+## Review performed for v0.1.0
+
+This is a self-review by the implementers, not an independent audit. The checks below were run; anything not listed was not tested.
+
+| Check | How | Result |
+| --- | --- | --- |
+| Static: process execution, `eval`/`exec`, unsafe YAML loaders | `grep` over `src/` and `scripts/` | None found. Only `yaml.compose_all(..., Loader=SafeLoader)` and `yaml.safe_load` are used |
+| Secret values in outputs | Planted canary values in `.env`, env files, template, malformed YAML, flow YAML, API bodies; checked in terminal, JSON, Markdown, errors and API responses | No canary value appeared. Covered by `tests/test_secret_leakage.py` |
+| Path traversal and symlinks | Traversal, absolute and symlinked paths in `env_file`, `--compose`, `--env-example`, `--include-env-file`, and symlinked Compose or template files | Refused. A refused template or Compose file is now a visible error (fixed; see below) |
+| Hostile YAML tags | `!!python/object/apply:os.system` on an `image:` value, and `!reset` | Never constructed or executed (SafeLoader only builds nodes). Each is reported as a CEG005 warning with its line. Before the fix this was missed (see below) |
+| API paths and validation errors | Traversal, absolute, `.env`, bad extension, NUL byte, bad types, bad JSON, oversized body | 422/413 with sanitised messages; no temp-directory or host paths. A user's own outside-path string is no longer echoed in `files` |
+| Docker runtime user and capabilities | CI: `id -u` inside the image | uid 10001 (non-root). `cap_drop: ALL`, `no-new-privileges`, read-only root filesystem with a `/tmp` tmpfs in `compose.yaml` (verified by CI for the stack starting; capabilities are configured, not separately tested) |
+| API bind address | `composeguard serve` default and the Compose port mapping | `127.0.0.1` by default. In the sandbox the server listened only on `127.0.0.1` |
+| Hardcoded credentials | Pattern search for password/secret/token/key assignments outside tests | None. Test values are invented constants |
+
+### Bugs found by this review and fixed
+
+- A symlinked `.env.example` (or `.env.sample`) that pointed outside the project was silently treated as "no template", and the scan passed. It is now a CEG005 error.
+- A symlinked `compose.yaml` that pointed outside the project produced a generic "No Compose file found". It now names the file and explains the refusal (exit 2).
+- The raw path of an `env_file` outside the project was echoed into the report's `files` list. It is now labelled by the file that declared it.
+- An unused name lookup (`is_within`) was missing from `scanner.py`; the new code path raised `NameError`, which the generic handler turned into exit 2. The tests caught it before release.
+- Unsupported YAML tags such as `!!python/...` were not reported, because the check missed the expanded tag form and fields such as `image` were not visited. They are now reported once each (CEG005 warning). Execution was never possible through this path.
+
+### Residual risks
+
+- The Docker base image is referenced by tag (`python:3.12-slim`), not by digest. Pin a digest before a production deployment.
+- The API still has no authentication, rate limiting, or TLS. Do not expose it beyond localhost without a proxy that adds them.
+- Variable names, including sensitive-sounding names such as `ADMIN_PASSWORD`, appear in reports by design.
+
 ## Safe usage checklist
 
 - Keep the API bound to localhost, or put it behind an authenticated, TLS-terminating proxy.

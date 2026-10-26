@@ -26,6 +26,16 @@ _MAX_DEPTH = 64
 _TRUE = {"true", "yes", "on"}
 _FALSE = {"false", "no", "off"}
 _SAFE_TAG = re.compile(r"^![A-Za-z_\-]{1,32}$")
+_YAML_TAG_PREFIX = "tag:yaml.org,2002:"
+# Core tags that ordinary Compose values use, including implicitly resolved ones such as
+# timestamps. Anything else (local tags like !reset and !!python/... shorthands) is unsupported.
+_CORE_TAGS = frozenset({"str", "int", "float", "bool", "null", "seq", "map", "merge", "timestamp"})
+
+
+def _is_unsupported_tag(tag: str) -> bool:
+    if tag.startswith(_YAML_TAG_PREFIX):
+        return tag[len(_YAML_TAG_PREFIX) :] not in _CORE_TAGS
+    return True
 
 
 @dataclass(frozen=True)
@@ -101,6 +111,7 @@ def parse_compose(text: str, path: str) -> ComposeFacts:
             None,
         )
         return facts
+    collector.sweep_tags(root)
     if not isinstance(root, MappingNode):
         collector.issue(
             "CEG005",
@@ -256,13 +267,11 @@ class _Collector:
                 self.line_of(node),
             )
             return
-        if node.tag.startswith("!"):
-            self._unsupported_tag(node)
         if isinstance(node, ScalarNode):
             if id(node) in self._scalars_seen:
                 return
             self._scalars_seen.add(id(node))
-            if node.tag == _STR_TAG or node.tag.startswith("!"):
+            if node.tag == _STR_TAG or _is_unsupported_tag(node.tag):
                 self._collect_refs(node.value, service, self.line_of(node))
             return
         if id(node) in self._mappings_seen:
@@ -278,6 +287,28 @@ class _Collector:
                     self.scan_values(item, service, depth + 1)
         finally:
             self._active.discard(id(node))
+
+    def sweep_tags(self, root: Node) -> None:
+        """Report every node with an unsupported tag exactly once, wherever it appears.
+
+        Walks the whole tree, so tags are found even in fields that are read by other code
+        paths (such as ``image``). Tags are never constructed into Python objects.
+        """
+        seen: set[int] = set()
+        stack: list[Node] = [root]
+        while stack:
+            node = stack.pop()
+            if id(node) in seen:
+                continue
+            seen.add(id(node))
+            if _is_unsupported_tag(node.tag):
+                self._unsupported_tag(node)
+            if isinstance(node, MappingNode):
+                for key_node, value_node in node.value:
+                    stack.append(key_node)
+                    stack.append(value_node)
+            elif isinstance(node, SequenceNode):
+                stack.extend(node.value)
 
     def _unsupported_tag(self, node: Node) -> None:
         tag = node.tag if _SAFE_TAG.match(node.tag) else "custom"
