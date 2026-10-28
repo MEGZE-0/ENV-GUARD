@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import functools
 import os
+import tempfile
 from pathlib import Path
 
 import pytest
@@ -36,8 +38,19 @@ def make_project(tmp_path: Path):
     return _make
 
 
+@functools.cache
 def can_symlink() -> bool:
-    return hasattr(os, "symlink")
+    if not hasattr(os, "symlink"):
+        return False
+    try:
+        with tempfile.TemporaryDirectory(prefix="composeguard-symlink-test-") as td:
+            src = Path(td) / "probe_src"
+            src.touch()
+            dst = Path(td) / "probe_dst"
+            dst.symlink_to(src)
+            return True
+    except OSError:
+        return False
 
 
 def rule_ids(report) -> list[str]:

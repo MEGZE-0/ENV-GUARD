@@ -113,8 +113,22 @@ jobs:
           docker compose logs --no-color || true
 
   composite-action:
-    name: Composite action smoke test
+    name: Composite action smoke test (Ubuntu)
     runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Run this repository's action against the healthy example
+        uses: ./
+        with:
+          path: examples/healthy-project
+          fail-on: error
+
+  composite-action-windows:
+    name: Composite action smoke test (Windows)
+    runs-on: windows-latest
     steps:
       - uses: actions/checkout@v7
         with:
