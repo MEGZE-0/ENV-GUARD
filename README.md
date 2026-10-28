@@ -364,6 +364,10 @@ More detail is in [docs/architecture.md](docs/architecture.md).
 - Report security issues privately, as described in [SECURITY.md](SECURITY.md).
 - Roadmap: [ROADMAP.md](ROADMAP.md). Changes: [CHANGELOG.md](CHANGELOG.md).
 
+## Author & Maintainer
+
+ComposeEnvGuard was designed, directed, and is actively maintained by **[MEGZE-0](https://github.com/MEGZE-0)**.
+
 ## License
 
 MIT. See [LICENSE](LICENSE).
