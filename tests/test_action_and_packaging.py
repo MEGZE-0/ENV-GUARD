@@ -15,19 +15,41 @@ from compose_env_guard.models import Report
 from conftest import EXAMPLES, REPO_ROOT
 
 SCRIPT = REPO_ROOT / "scripts" / "ci-scan.sh"
-needs_bash = pytest.mark.skipif(shutil.which("bash") is None, reason="bash is not available")
+
+
+def _find_functional_bash() -> str | None:
+    candidates: list[str] = []
+    found = shutil.which("bash")
+    if found:
+        candidates.append(found)
+    if sys.platform == "win32":
+        for git_bash in (
+            Path(r"C:\Program Files\Git\bin\bash.exe"),
+            Path(r"C:\Program Files\Git\usr\bin\bash.exe"),
+        ):
+            if git_bash.is_file() and str(git_bash) not in candidates:
+                candidates.append(str(git_bash))
+    for candidate in candidates:
+        try:
+            res = subprocess.run([candidate, "-c", "true"], capture_output=True, timeout=5)
+            if res.returncode == 0:
+                return candidate
+        except (subprocess.SubprocessError, OSError):
+            continue
+    return None
+
+
+BASH_BIN = _find_functional_bash()
+needs_bash = pytest.mark.skipif(BASH_BIN is None, reason="functional bash is not available")
 
 
 def _wrapper(tmp_path: Path, exit_code: int | None = None) -> Path:
     """An executable stand-in for 'composeguard' that runs the real CLI and logs its argv."""
-    log = tmp_path / "argv.log"
+    log = (tmp_path / "argv.log").as_posix()
     script = tmp_path / "composeguard-wrapper"
-    tail = (
-        f"exit {exit_code}"
-        if exit_code is not None
-        else f'exec "{sys.executable}" -m compose_env_guard.cli "$@"'
-    )
-    script.write_text(f'#!/bin/sh\nprintf "%s\\n" "$@" > "{log}"\n{tail}\n')
+    py_exe = sys.executable.replace("\\", "/")
+    tail = f"exit {exit_code}" if exit_code is not None else f'exec "{py_exe}" -m compose_env_guard.cli "$@"'
+    script.write_text(f'#!/bin/sh\nprintf "%s\\n" "$@" > "{log}"\n{tail}\n', encoding="utf-8")
     script.chmod(script.stat().st_mode | stat.S_IEXEC)
     return script
 
@@ -39,10 +61,11 @@ def _run_script(env_overrides: dict[str, str], tmp_path: Path) -> subprocess.Com
         "RUNNER_TEMP": str(tmp_path),
         "CEG_ACTION_PATH": str(REPO_ROOT),
         "PYTHONPATH": str(REPO_ROOT / "src"),
+        "CEG_PYTHON": sys.executable,
         **env_overrides,
     }
     return subprocess.run(
-        ["bash", str(SCRIPT)], env=env, capture_output=True, text=True, timeout=120, check=False
+        [BASH_BIN or "bash", str(SCRIPT)], env=env, capture_output=True, text=True, timeout=120, check=False
     )
 
 
@@ -65,7 +88,8 @@ def test_action_script_passes_arguments_safely_and_writes_summary(tmp_path):
     )
     assert result.returncode == 0, result.stderr
     argv = (tmp_path / "argv.log").read_text().splitlines()
-    assert argv[:2] == ["scan", str(EXAMPLES / "broken-project")]
+    assert argv[0] == "scan"
+    assert Path(argv[1]).resolve() == (EXAMPLES / "broken-project").resolve()
     assert "--fail-on" in argv and argv[argv.index("--fail-on") + 1] == "never"
     assert argv[argv.index("--env-example") + 1] == ".env.sample"
     compose_args = [argv[i + 1] for i, a in enumerate(argv) if a == "--compose"]
@@ -141,6 +165,21 @@ def test_action_script_writes_markdown_summary_for_passing_scan(tmp_path):
         {
             "CEG_COMPOSEGUARD_BIN": str(_wrapper(tmp_path)),
             "CEG_PATH": str(EXAMPLES / "healthy-project"),
+            "GITHUB_STEP_SUMMARY": str(summary),
+        },
+        tmp_path,
+    )
+    assert result.returncode == 0, result.stderr
+    assert "**Final status:** Passed" in summary.read_text()
+
+
+@needs_bash
+def test_action_script_creates_virtualenv_and_scans_project(tmp_path):
+    summary = tmp_path / "summary.md"
+    result = _run_script(
+        {
+            "CEG_PATH": str(EXAMPLES / "healthy-project"),
+            "CEG_FAIL_ON": "error",
             "GITHUB_STEP_SUMMARY": str(summary),
         },
         tmp_path,

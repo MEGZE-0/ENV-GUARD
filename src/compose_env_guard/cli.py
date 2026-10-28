@@ -14,7 +14,7 @@ from rich.console import Console
 
 from . import __version__
 from .models import FailOn
-from .reporters import print_terminal, render_json, render_markdown
+from .reporters import format_separator, print_terminal, render_json, render_markdown
 from .rules import RULES
 from .scanner import ScanOptions, scan_project
 from .security import ScanInputError
@@ -173,10 +173,11 @@ def rules_command(
         typer.echo(json.dumps(payload, indent=2))
         return
     console = _console()
+    sep = format_separator(console)
     console.print("ComposeEnvGuard rules", style="bold")
     for rule in RULES:
         console.print()
-        console.print(f"{rule.id} — {rule.title} [{rule.default_severity.value}]", style="bold")
+        console.print(f"{rule.id} {sep} {rule.title} [{rule.default_severity.value}]", style="bold")
         console.print(f"  Detects: {rule.detects}")
         console.print(f"  Does not detect: {rule.does_not_detect}")
 

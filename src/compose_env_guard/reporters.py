@@ -7,6 +7,8 @@ paths, line numbers and fixed messages.
 
 from __future__ import annotations
 
+import sys
+
 from rich.console import Console
 from rich.markup import escape
 
@@ -14,6 +16,20 @@ from .models import Finding, Report, Severity
 
 _LABELS = {Severity.ERROR: "ERROR", Severity.WARNING: "WARNING", Severity.INFO: "INFO"}
 _STYLES = {Severity.ERROR: "bold red", Severity.WARNING: "bold yellow", Severity.INFO: "bold cyan"}
+
+
+def format_separator(console: Console | None = None) -> str:
+    """Return an em-dash if the console encoding supports it, else an ASCII hyphen fallback."""
+    encoding = None
+    if console is not None:
+        encoding = getattr(console.file, "encoding", None) or getattr(console, "encoding", None)
+    if not encoding:
+        encoding = getattr(sys.stdout, "encoding", None) or "utf-8"
+    try:
+        "—".encode(encoding)
+        return "—"
+    except (UnicodeEncodeError, LookupError):
+        return "-"
 
 
 def files_analyzed(report: Report) -> int:
@@ -53,11 +69,12 @@ def print_terminal(report: Report, console: Console) -> None:
     if not report.findings:
         console.print("No findings.", highlight=False, soft_wrap=True)
         console.print()
+    sep = format_separator(console)
     for finding in report.findings:
         label = f"[{_LABELS[finding.severity]}]"
         subject = finding.variable or finding.subject or finding.file or finding.title
         console.print(
-            f"{label} {finding.rule_id} — {escape(subject)}",
+            f"{label} {finding.rule_id} {sep} {escape(subject)}",
             style=_STYLES[finding.severity],
             highlight=False,
             soft_wrap=True,

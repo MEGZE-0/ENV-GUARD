@@ -51,9 +51,18 @@ def test_healthy_example_exits_zero():
 def test_broken_example_exits_one_and_shows_actionable_output():
     result = invoke("scan", str(EXAMPLES / "broken-project"))
     assert result.exit_code == 1
-    assert "[WARNING] CEG001 — JWT_SECRET" in result.stdout
-    assert "[ERROR] CEG003 — config/missing.env" in result.stdout or "CEG003" in result.stdout
-    assert "[INFO] CEG004 — LEGACY_API_URL" in result.stdout
+    assert any(
+        needle in result.stdout
+        for needle in ("[WARNING] CEG001 — JWT_SECRET", "[WARNING] CEG001 - JWT_SECRET")
+    )
+    assert any(
+        needle in result.stdout
+        for needle in ("[ERROR] CEG003 — config/missing.env", "[ERROR] CEG003 - config/missing.env", "CEG003")
+    )
+    assert any(
+        needle in result.stdout
+        for needle in ("[INFO] CEG004 — LEGACY_API_URL", "[INFO] CEG004 - LEGACY_API_URL")
+    )
     assert (
         "Errors: 1" in result.stdout and "Warnings: 2" in result.stdout and "Information: 1" in result.stdout
     )
@@ -223,3 +232,43 @@ def test_unexpected_failure_is_reported_without_internals(monkeypatch):
     assert result.exit_code == 2
     assert "unexpected failure" in result.output
     assert SECRET not in result.output
+
+
+def test_terminal_reporter_supports_ascii_and_legacy_windows_console_encodings():
+    import io
+
+    from rich.console import Console
+
+    from compose_env_guard.reporters import format_separator, print_terminal
+    from compose_env_guard.scanner import ScanOptions, scan_project
+
+    class MockStream:
+        def __init__(self, enc):
+            self.encoding = enc
+            self._buf = io.StringIO()
+
+        def write(self, s):
+            return self._buf.write(s)
+
+        def flush(self):
+            pass
+
+        def getvalue(self):
+            return self._buf.getvalue()
+
+    for enc in ("cp437", "ascii"):
+        stream = MockStream(enc)
+        console = Console(file=stream, no_color=True)
+        assert format_separator(console) == "-"
+
+    stream_utf8 = MockStream("utf-8")
+    console_utf8 = Console(file=stream_utf8, no_color=True)
+    assert format_separator(console_utf8) == "—"
+
+    report = scan_project(str(EXAMPLES / "broken-project"), ScanOptions())
+    cp437_stream = MockStream("cp437")
+    cp437_console = Console(file=cp437_stream, no_color=True)
+    print_terminal(report, cp437_console)
+    output = cp437_stream.getvalue()
+    assert "[WARNING] CEG001 - JWT_SECRET" in output
+    assert "Errors: 1" in output
