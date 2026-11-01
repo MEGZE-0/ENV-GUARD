@@ -42,7 +42,7 @@ ComposeEnvGuard is a **local, read-only analysis tool**. It is designed for the 
 | Secret-bearing files are read without the user asking | `.env`, `.env.local`, `.env.production` and any env file that is not a template or an explicit `--include-env-file` are never opened. Their existence is reported as CEG007. |
 | Path traversal or reads outside the project | Every path is resolved relative to the project root and rejected if it escapes. Absolute paths and paths with NUL bytes are rejected. |
 | Symlinks pointing outside the project | Symlinks are not followed when they resolve outside the project boundary. |
-| Denial of service through large files or deep YAML | Size limits (1 MiB Compose, 256 KiB env files, 64 KiB configuration, 10 Compose files, 50 env file reads). The API enforces a 1 MiB request limit while streaming, 20 files, and 256 KiB per file. Aliases in YAML are checked for recursion. |
+| Denial of service through large files or deep YAML | Size limits (1 MiB Compose, 256 KiB env files, 64 KiB configuration, 10 Compose files). The API enforces a 1 MiB request limit while streaming, 20 files, and 256 KiB per file. Aliases in YAML are checked for recursion. |
 | Code execution through YAML or the scanner | `yaml.SafeLoader` is used on node trees; custom tags are not constructed. The scanner never evaluates values, never calls a shell and never imports user code. |
 | Shell injection in CI | GitHub Action inputs are passed as environment variables, not interpolated into scripts; arguments are passed to the scanner as separate argv entries. |
 | Docker socket exposure | Neither the Dockerfile nor compose.yaml mounts the Docker socket. The container runs as a non-root user, with a read-only root filesystem, all capabilities dropped, and `no-new-privileges`. |
@@ -52,6 +52,9 @@ ComposeEnvGuard is a **local, read-only analysis tool**. It is designed for the 
 | Modification of the project | The scan opens files read-only. Output is written only where `--output` points. |
 
 ### Known residual risks
+
+- YAML composition and merge/alias expansion have explicit complexity budgets. Invalid configuration errors omit untrusted key paths; API validation paths use schema fields or a placeholder. Interpolated and outside-project `env_file` paths are represented by declaration locations so default values do not enter uncertainty messages.
+- There is no enforced env-file count limit. The implemented limits cover file sizes, Compose file count and YAML complexity.
 
 - **Interpolation references are sensitive metadata.** Variable names such as `ADMIN_PASSWORD` appear in reports. This is by design (names are needed), but a shared report can reveal your architecture.
 - **Templates may contain real values.** If your `.env.example` contains a real secret, that secret is not printed by ComposeEnvGuard, but it is still a leak in your repository. The scanner does not detect secret values.

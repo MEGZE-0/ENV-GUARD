@@ -36,6 +36,7 @@ ComposeEnvGuard is deliberately narrow: it reads files and reports what it can p
 - **Discovery is non-recursive.** The scanner looks only in the project directory you give it. This keeps it fast and avoids surprises in `.git`, virtual environments and build folders.
 - **One template per scan.** If both `.env.example` and `.env.sample` exist, `.env.example` is used (the first existing name in the discovery order). Use `--env-example` to choose the other one.
 - **Size limits.** Compose files up to 1 MiB, env files and templates up to 256 KiB, configuration up to 64 KiB, at most 10 Compose files. Larger files are reported and skipped.
+- **YAML complexity.** Composition is limited to 64 nesting levels and 10,000 node/alias visits. Configuration construction and Compose merge traversal also have expansion budgets. Inputs beyond these limits receive a safe input error or CEG005 diagnostic.
 - **Encoding.** Files must be UTF-8 (a BOM is accepted). Other encodings are reported as CEG005 errors.
 - **Line numbers.** Reliable for ordinary YAML and dotenv. For a problem inside an anchor, the line is where the anchor is defined.
 

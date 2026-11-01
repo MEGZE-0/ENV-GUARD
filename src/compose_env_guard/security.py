@@ -141,6 +141,10 @@ def validate_api_filename(name: str) -> str:
         raise UnsafeNameError("file name must be a non-empty string of at most 128 characters")
     if any(ch in name for ch in ("/", "\\", "\x00", ":")) or name in (".", ".."):
         raise UnsafeNameError("file names must be plain names without directories")
-    if _API_COMPOSE_NAME.match(name) or _API_TEMPLATE_NAME.match(name) or _API_CONFIG_NAME.match(name):
+    if (
+        _API_COMPOSE_NAME.fullmatch(name)
+        or _API_TEMPLATE_NAME.fullmatch(name)
+        or _API_CONFIG_NAME.fullmatch(name)
+    ):
         return name
     raise UnsafeNameError("file name is not an allowed Compose, template or config file name")

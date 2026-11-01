@@ -24,7 +24,7 @@ from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_valida
 from . import __version__
 from .compose_parser import ComposeFacts, RefOccurrence, parse_compose
 from .dotenv_parser import DotenvDocument, DotenvKey, parse_dotenv
-from .interpolation import contains_interpolation
+from .interpolation import InterpolationSyntaxError, contains_interpolation
 from .models import (
     AnalyzedFile,
     FailOn,
@@ -51,6 +51,7 @@ from .security import (
     ScanInputError,
     is_within,
 )
+from .yaml_loader import BoundedSafeLoader
 
 COMPOSE_OVERRIDE_NAMES = (
     "compose.override.yaml",
@@ -127,7 +128,11 @@ def _load_config(boundary: ProjectRoot, rel: str | None) -> tuple[ComposeGuardCo
     except ProjectPathError as exc:
         raise ScanInputError(f"Configuration file {rel} could not be read: {exc}.") from exc
     try:
-        data: Any = yaml.safe_load(text)
+        loader = BoundedSafeLoader(text)
+        try:
+            data: Any = loader.get_single_data()
+        finally:
+            loader.dispose()
     except yaml.YAMLError as exc:
         mark = getattr(exc, "problem_mark", None)
         where = f" at line {mark.line + 1}" if mark is not None else ""
@@ -139,9 +144,7 @@ def _load_config(boundary: ProjectRoot, rel: str | None) -> tuple[ComposeGuardCo
     try:
         return ComposeGuardConfig.model_validate(data), rel
     except ValidationError as exc:
-        problems = "; ".join(
-            f"{'.'.join(str(p) for p in err['loc']) or 'root'}: {err['msg']}" for err in exc.errors()
-        )
+        problems = "; ".join(str(err["msg"]) for err in exc.errors(include_input=False))
         raise ScanInputError(f"Configuration file {rel} is invalid: {problems}.") from None
 
 
@@ -580,11 +583,20 @@ def _resolve_env_files(
         for service in facts.services.values():
             for entry in service.env_files:
                 position = (facts.path, entry.line)
-                if contains_interpolation(entry.path):
+                try:
+                    interpolated = contains_interpolation(entry.path)
+                except InterpolationSyntaxError:
+                    # The Compose parser already emitted CEG005; never resolve invalid syntax.
+                    interpolated = True
+                if interpolated:
                     key = f"{entry.path} (declared in {facts.path})"
                     state = ctx.env_files.setdefault(
                         key,
-                        EnvFileState(path=entry.path, declared_in=facts.path, line=entry.line),
+                        EnvFileState(
+                            path=f"<interpolated path, declared in {facts.path}:{entry.line}>",
+                            declared_in=facts.path,
+                            line=entry.line,
+                        ),
                     )
                     state.status = "interpolated"
                     state.required = state.required or entry.required
@@ -609,7 +621,11 @@ def _resolve_env_files(
                     key = f"{entry.path} (declared in {facts.path})"
                     state = ctx.env_files.setdefault(
                         key,
-                        EnvFileState(path=entry.path, declared_in=facts.path, line=entry.line),
+                        EnvFileState(
+                            path=f"<outside the project, declared in {facts.path}:{entry.line}>",
+                            declared_in=facts.path,
+                            line=entry.line,
+                        ),
                     )
                     state.status = "outside"
                     state.required = state.required or entry.required

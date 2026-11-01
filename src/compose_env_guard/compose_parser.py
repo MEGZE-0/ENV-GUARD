@@ -18,6 +18,7 @@ from .interpolation import InterpolationRef, InterpolationSyntaxError, parse_ref
 from .models import Finding, Severity
 from .rules import make_finding
 from .security import VALID_VARIABLE_NAME
+from .yaml_loader import BoundedSafeLoader
 
 _MERGE_TAG = "tag:yaml.org,2002:merge"
 _NULL_TAG = "tag:yaml.org,2002:null"
@@ -81,7 +82,7 @@ def parse_compose(text: str, path: str) -> ComposeFacts:
     facts = ComposeFacts(path=path)
     collector = _Collector(facts)
     try:
-        documents = list(yaml.compose_all(text, Loader=yaml.SafeLoader))
+        documents = list(yaml.compose_all(text, Loader=BoundedSafeLoader))
     except yaml.YAMLError as exc:
         line = _problem_line(exc)
         collector.issue(
@@ -163,6 +164,7 @@ class _Collector:
         self._active: set[int] = set()
         self._value_nodes_reported: set[int] = set()
         self._suppress = False
+        self._merge_visits = 0
 
     # -- helpers -----------------------------------------------------------------
 
@@ -200,8 +202,19 @@ class _Collector:
     def line_of(node: Node) -> int:
         return node.start_mark.line + 1
 
-    def pairs(self, node: MappingNode, *, top_level: bool = False):
+    def pairs(self, node: MappingNode, *, top_level: bool = False, ancestors: tuple[int, ...] = ()):
         """Yield ``(key, key_node, value_node)`` honouring ``<<`` merges and reporting duplicates."""
+        self._merge_visits += 1
+        if id(node) in ancestors or len(ancestors) >= _MAX_DEPTH or self._merge_visits > 10_000:
+            self.issue(
+                "CEG005",
+                Severity.ERROR,
+                "YAML merge recursion or complexity limit exceeded.",
+                "Remove recursive aliases or simplify the merge structure.",
+                self.line_of(node),
+            )
+            return
+        ancestors = (*ancestors, id(node))
         explicit: dict[str, tuple[Node, Node]] = {}
         merged: dict[str, tuple[Node, Node]] = {}
         for key_node, value_node in node.value:
@@ -209,7 +222,7 @@ class _Collector:
                 sources = value_node.value if isinstance(value_node, SequenceNode) else [value_node]
                 for source in sources:
                     if isinstance(source, MappingNode):
-                        for key, k_node, v_node in self.pairs(source):
+                        for key, k_node, v_node in self.pairs(source, ancestors=ancestors):
                             merged.setdefault(key, (k_node, v_node))
                     else:
                         self.issue(

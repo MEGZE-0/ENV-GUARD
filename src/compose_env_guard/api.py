@@ -75,7 +75,10 @@ class ScanRequest(BaseModel):
                 validate_api_filename(name)
             except UnsafeNameError as exc:
                 raise ValueError(str(exc)) from None
-            size = len(content.encode("utf-8"))
+            try:
+                size = len(content.encode("utf-8"))
+            except UnicodeEncodeError:
+                raise ValueError("file contents must be valid UTF-8 text") from None
             if size > API_MAX_FILE_BYTES:
                 raise ValueError(f"each file may be at most {API_MAX_FILE_BYTES} bytes")
             total += size
@@ -86,7 +89,7 @@ class ScanRequest(BaseModel):
     @model_validator(mode="after")
     def _check_selection(self) -> ScanRequest:
         names = set(self.files)
-        if self.compose_files is not None:
+        if self.compose_files:
             for name in self.compose_files:
                 if name not in names or not _COMPOSE_RE.match(name):
                     raise ValueError("compose_files must name Compose files included in files")
@@ -105,7 +108,10 @@ def _sanitize_validation_errors(exc: ValidationError) -> list[dict[str, Any]]:
     """Keep location and message only; pydantic's ``input`` field may echo file contents."""
     return [
         {
-            "loc": [str(part) for part in err.get("loc", ())],
+            "loc": [
+                str(part) if isinstance(part, int) or part in ScanRequest.model_fields else "<field>"
+                for part in err.get("loc", ())
+            ],
             "msg": str(err.get("msg", "invalid value")),
             "type": str(err.get("type", "value_error")),
         }
@@ -137,8 +143,11 @@ def _run_scan(payload: ScanRequest) -> Report:
             path = os.path.join(workdir, name)
             with open(path, "x", encoding="utf-8", newline="") as handle:
                 handle.write(content)
+        selection = payload.compose_files or []
+        if not selection and not any(name in payload.files for name in COMPOSE_NAMES):
+            selection = [min(name for name in payload.files if _COMPOSE_RE.fullmatch(name))]
         options = ScanOptions(
-            compose_files=list(payload.compose_files or []),
+            compose_files=list(selection),
             env_example=payload.env_example,
             fail_on=payload.fail_on,
             project_name="api-request",
@@ -185,7 +194,7 @@ def create_app() -> FastAPI:
         body = await _read_limited_body(request, API_MAX_REQUEST_BYTES)
         try:
             data = json.loads(body.decode("utf-8")) if body else None
-        except (UnicodeDecodeError, ValueError):
+        except (UnicodeDecodeError, ValueError, RecursionError):
             return JSONResponse(status_code=422, content={"detail": "Request body must be valid UTF-8 JSON."})
         if data is None:
             return JSONResponse(status_code=422, content={"detail": "A JSON body is required."})

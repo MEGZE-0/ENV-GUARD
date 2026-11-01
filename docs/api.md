@@ -47,7 +47,7 @@ composeguard serve                   # binds to 127.0.0.1:8000
 | `files` | yes | Mapping of file name to UTF-8 text. Root-level names only. |
 | `fail_on` | no | `error` (default), `warning`, `info` or `never`. Sets `status` in the report. |
 | `env_example` | no | Name of a template included in `files`. |
-| `compose_files` | no | Names of Compose files included in `files`. Defaults to the first standard name found. |
+| `compose_files` | no | Names of Compose files included in `files`. Defaults to the first standard name found; if none exists, selects the alphabetically first supplied Compose variant. An empty list uses the same discovery behavior. |
 
 **Allowed file names:**
 
@@ -85,7 +85,7 @@ Response (abridged, real output):
 | --- | --- |
 | `200` | The scan completed. Findings, including errors, are a successful response. |
 | `413` | The request body exceeds 1 MiB. |
-| `422` | The request is invalid: bad JSON, an unsafe or unknown file name, too many files, a file over 256 KiB, no Compose file, or an unusable input. The response describes the problem with field locations and never echoes submitted content. |
+| `422` | The request is invalid: bad JSON, an unsafe or unknown file name, invalid UTF-8 text, too many files, a file over 256 KiB, no Compose file, or an unusable input. Validation locations preserve schema fields and numeric indices; untrusted keys are replaced with `<field>`. |
 | `500` | Unexpected server error. The body is `{"detail": "Internal server error."}`. Details are logged by exception type only. |
 
 ## Guarantees
