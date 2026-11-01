@@ -4,9 +4,18 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
+### Fixed
+
+- Bound YAML composition, configuration alias expansion and Compose merge traversal to reject recursive or overly complex input safely.
+- Redact untrusted validation locations and interpolated/outside-project env-file paths from diagnostics, including uncertainty notes.
+- Keep malformed env-file interpolation in the diagnostic report instead of aborting a scan.
+- Select uploaded Compose variants deterministically when no standard filename is supplied; reject empty selections without a Compose file, invalid UTF-8 text and newline filenames.
+- Treat a timed-out Docker availability probe as unavailable, allowing other tests to run.
+- Make the forced-color test independent of the host's `TERM=dumb` setting.
+
 ## [0.1.0] - 2026-10-26
 
-Initial development version. Not yet published to PyPI or tagged.
+Initial public preview, tagged `v0.1.0`. Not yet published to PyPI.
 
 ### Added
 

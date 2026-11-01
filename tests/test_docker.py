@@ -13,7 +13,10 @@ IMAGE = "compose-env-guard:pytest"
 def _docker_available() -> bool:
     if shutil.which("docker") is None:
         return False
-    probe = subprocess.run(["docker", "info"], capture_output=True, text=True, timeout=30, check=False)
+    try:
+        probe = subprocess.run(["docker", "info"], capture_output=True, text=True, timeout=30, check=False)
+    except (OSError, subprocess.TimeoutExpired):
+        return False
     return probe.returncode == 0
 
 

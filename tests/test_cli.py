@@ -200,7 +200,7 @@ def test_no_secret_values_in_any_cli_format(make_project):
 def test_no_color_environment_removes_ansi_sequences(make_project):
     project = make_project({"compose.yaml": "services:\n  a:\n    image: x:${T}\n", ".env.example": "A=1\n"})
     # Control case: forced colour really produces ANSI codes, so the next assertion is meaningful.
-    coloured = invoke("scan", str(project), env={"FORCE_COLOR": "1", "NO_COLOR": None})
+    coloured = invoke("scan", str(project), env={"FORCE_COLOR": "1", "NO_COLOR": None, "TERM": "xterm"})
     assert "\x1b[" in coloured.output
     plain = invoke("scan", str(project), env={"FORCE_COLOR": "1", "NO_COLOR": "1"})
     assert "\x1b[" not in plain.output

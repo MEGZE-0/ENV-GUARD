@@ -8,6 +8,8 @@ It is a **read-only, local** tool. It never runs your containers, never executes
 
 > Status: version 0.1.0, alpha. Not yet published to PyPI. See [Installation](#installation) for the supported ways to run it today.
 
+See the [project Wiki](https://github.com/MEGZE-0/ENV-GUARD/wiki) for the documentation portal. A browser dashboard is a v0.2.0 candidate; the released preview provides the CLI and optional HTTP API.
+
 ## Quick start
 
 ```bash
